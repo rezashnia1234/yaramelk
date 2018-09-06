@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1" />
+    <title>بسم الله الرحمن الرحيم</title>
+    <link rel="stylesheet" type="text/css" href="css/reset.css">
+    <link rel="stylesheet" type="text/css" href="css/template.css">
+	<script src="js/jquery-2.2.2.min.js"></script>
+    <!-- <script src="js/console.log.js"></script> -->
+	<script src="js/iframeResizer.min.js"></script>
+    <script src="cordova.js"></script>
+    <!-- <script src="js/fastclick.js"></script> -->
+    <!-- <script src="js/notification.js"></script> -->
+
+	<script>
+		var server_url="http://www.bapeymankar.com/app/";
+		var networkState;
+		var window_height;
+		var iframe_body;
+		function init() {		
+			//alert("init()");
+			console.log('SMGROUP ::::::::::::::::::::::::::::::::::::    start init()');
+			document.addEventListener("deviceready", onDeviceReady, false);
+			$("#iframe").iFrameResize({
+							//log:true,
+							autoResize:true,
+							enablePublicMethods:true,
+							resizedCallback:function(messageData){},
+							messageCallback:function(messageData){iframe_recive_massage(messageData.message);}
+						});
+			function iframe_recive_massage(msg) {
+				if(msg=="Loading_Completed"){
+					loadcompeleted();
+				}
+				else if(msg=="Exit_app"){
+					go_back_index();
+				}
+				else if(~msg.indexOf("eval___")){
+					//msg = "eval___alert('ssss');";
+					eval(msg.replace("eval___",""));
+				}
+				else
+					alert(msg);
+			}
+			//alert("init()-end");
+			window_height = $(window).height();
+			iframe_body = $("#iframe");
+			iframe_body.css("min-height",window_height + "px");
+		}
+		function loadcompeleted() {		
+			setTimeout(function(){ jQuery('.preloader').css("opacity","0"); }, 300);
+			setTimeout(function(){ jQuery('.preloader').addClass("display_none"); }, 1000);
+			iframe_body.css("min-height",window_height + "px");
+		}
+		function alertDismissed_check_net(){
+			console.log("alertDismissed_check_net : loop :" + window.sessionStorage.getItem("do_loop"));
+			if(window.sessionStorage.getItem("do_loop")=="1")
+			{
+				window.sessionStorage.removeItem("do_loop");
+				check_net(true,true,true);
+			}
+		};
+		function check_server(handle_check_server) {
+			var timeStampInMs = window.performance && window.performance.now && window.performance.timing && window.performance.timing.navigationStart ? window.performance.now() + window.performance.timing.navigationStart : Date.now();
+			$.ajax({
+					url: server_url + "check_net.aspx",
+					type: "POST",
+					data: {
+						act: "check_net",//timeStampInMs
+					},
+					//async: true,
+					success : function(text)
+					{
+						handle_check_server(text);
+					},
+					error: function(jqXHR, exception) {
+						window.sessionStorage.setItem("do_loop","1");
+						navigator.notification.alert(
+							'شما برای استفاده از خدمات این نرم افزار به اینترنت نیاز دارید!',  // message
+							alertDismissed_check_net,         // callback
+							'توجه',            // title
+							'تائید'                  // buttonName
+						);
+					},
+			});
+		}
+		function check_net(show_alert,do_loop,reload){
+			if(navigator.connection.type)
+				networkState = navigator.connection.type;
+			else
+				networkState = navigator.connection.effectiveType;
+			console.log(networkState);
+			//alert("check_net() strat");
+			if (networkState == Connection.NONE) {
+				if(show_alert)
+				{
+					if(do_loop)
+						window.sessionStorage.setItem("do_loop","1");
+					else
+						window.sessionStorage.setItem("do_loop","0");
+					
+					navigator.notification.alert(
+						'شما برای استفاده از خدمات این نرم افزار به اینترنت نیاز دارید!',  // message
+						alertDismissed_check_net,         // callback
+						'توجه',            // title
+						'تائید'                  // buttonName
+					);
+				}
+				return false;
+			}
+			check_server(function(text){
+				console.log(text);
+				if(text!="1")
+				{
+					window.sessionStorage.setItem("do_loop","1");
+					navigator.notification.alert(
+						'شما برای استفاده از خدمات این نرم افزار به اینترنت نیاز دارید!',  // message
+						alertDismissed_check_net,         // callback
+						'توجه',            // title
+						'تائید'                  // buttonName
+					);
+					return false;
+				}
+			});
+			if(reload)
+			{
+				var iframe = document.getElementById("iframe");
+				iframe.src = iframe.src;
+			}
+			return true;
+		}
+
+
+		/*
+		$(document).ready(function(){
+			setTimeout(function(){
+				if (! window.cordova)
+					//onDeviceReady();
+					$('.mypreload').html("");
+					$('.myregister').html("");
+			}, 2000);
+		});
+		*/
+
+		function onDeviceReady() {
+			StatusBar.hide();
+			if(navigator.connection.type)
+				networkState = navigator.connection.type;
+			else
+				networkState = navigator.connection.effectiveType;
+			check_net(true,true,false);
+		}
+		function need_internet(){
+			if(does_we_have_intenet)
+				return true;
+			else
+				return false;
+		};
+		function need_internet_alert(){
+			navigator.notification.alert(
+				'شما برای استفاده از خدمات این نرم افزار به اینترنت نیاز دارید!',  // message
+				alertDismissed,         // callback
+				'توجه',            // title
+				'تائید'                  // buttonName
+			);
+			function alertDismissed(){};
+		};
+		
+		function uniqueDeviceIDsuccess_index(uuid)
+		{
+			window.localStorage.setItem('uuid',uuid);
+		};
+		function uniqueDeviceIDfail_index(uuid)
+		{
+			//alert("uniqueDeviceIDfail" + uuid);
+		};
+
+		function go_back_index() {
+			navigator.notification.confirm(
+				'آیا تمایل به خروج از برنامه را دارید؟',	// message
+				onExitConfirm,								// callback
+				'توجه',										// title
+				['بله','خیر']								// buttonName
+			);
+		}
+		function onExitConfirm(buttonIndex) {
+			if(buttonIndex==1)
+			{
+				navigator.app.exitApp();
+			}
+			else
+			{
+				
+			}
+		}
+
+		setTimeout(function(){
+			if(!window.cordova)
+			{
+				if(navigator.connection.type)
+					networkState = navigator.connection.type;
+				else
+					networkState = navigator.connection.effectiveType;
+
+				Connection = {};
+				Connection.NONE = "0000";
+				// Connection.NONE = "4g";
+				setTimeout(function(){
+					if(window.localStorage.getItem("udid")==null)
+						window.localStorage.setItem("udid","test");
+				}, 1500);
+
+				setTimeout(function(){
+					if(window.localStorage.getItem("notification_id")==null)
+						window.localStorage.setItem("notification_id","test");
+				}, 1500);
+				device = {};
+				device.platform = "iOS";
+				
+				check_net(true,true,false);
+			}
+		}, 2500);
+	</script>
+</head>
+<body onload="init();" style="background-color: #f6f0eb;">
+<!---->
+<div class="preloader display_none00"><div class="windows8"><div class="wBall" id="wBall_1"><div class="wInnerBall"></div></div><div class="wBall" id="wBall_2"><div class="wInnerBall"></div></div><div class="wBall" id="wBall_3"><div class="wInnerBall"></div></div><div class="wBall" id="wBall_4"><div class="wInnerBall"></div></div><div class="wBall" id="wBall_5"><div class="wInnerBall"></div></div></div></div>
+<style>.preloader{opacity:1;position:fixed;width:100%;height:100%;left:0;top:0;background-color:#F0EEE3;z-index:214748001!important;transition:all .7s cubic-bezier(.175,.885,.32,1.275) 0s}.preloader.display_none{display:none}.windows8,.windows8 *{direction:ltr;text-align:left}.windows8 .wBall{position:absolute;width:72px;height:72px;opacity:0;transform:rotate(225deg);-o-transform:rotate(225deg);-ms-transform:rotate(225deg);-webkit-transform:rotate(225deg);-moz-transform:rotate(225deg);animation:orbit 6.96s infinite;-o-animation:orbit 6.96s infinite;-ms-animation:orbit 6.96s infinite;-webkit-animation:orbit 6.96s infinite;-moz-animation:orbit 6.96s infinite}.windows8 .wBall .wInnerBall{position:absolute;width:9px;height:9px;background:#ffffff;left:0;top:0;border-radius:9px}.windows8 #wBall_1{animation-delay:1.52s;-o-animation-delay:1.52s;-ms-animation-delay:1.52s;-webkit-animation-delay:1.52s;-moz-animation-delay:1.52s}.windows8 #wBall_2{animation-delay:.3s;-o-animation-delay:.3s;-ms-animation-delay:.3s;-webkit-animation-delay:.3s;-moz-animation-delay:.3s}.windows8 #wBall_3{animation-delay:.61s;-o-animation-delay:.61s;-ms-animation-delay:.61s;-webkit-animation-delay:.61s;-moz-animation-delay:.61s}.windows8 #wBall_4{animation-delay:.91s;-o-animation-delay:.91s;-ms-animation-delay:.91s;-webkit-animation-delay:.91s;-moz-animation-delay:.91s}.windows8 #wBall_5{animation-delay:1.22s;-o-animation-delay:1.22s;-ms-animation-delay:1.22s;-webkit-animation-delay:1.22s;-moz-animation-delay:1.22s}@keyframes orbit{0%{opacity:1;z-index:99;transform:rotate(180deg);animation-timing-function:ease-out}7%{opacity:1;transform:rotate(300deg);animation-timing-function:linear;origin:0}30%{opacity:1;transform:rotate(410deg);animation-timing-function:ease-in-out;origin:7%}39%{opacity:1;transform:rotate(645deg);animation-timing-function:linear;origin:30%}70%{opacity:1;transform:rotate(770deg);animation-timing-function:ease-out;origin:39%}75%{opacity:1;transform:rotate(900deg);animation-timing-function:ease-out;origin:70%}100%,76%{opacity:0;transform:rotate(900deg)}}@-o-keyframes orbit{0%{opacity:1;z-index:99;-o-transform:rotate(180deg);-o-animation-timing-function:ease-out}7%{opacity:1;-o-transform:rotate(300deg);-o-animation-timing-function:linear;-o-origin:0}30%{opacity:1;-o-transform:rotate(410deg);-o-animation-timing-function:ease-in-out;-o-origin:7%}39%{opacity:1;-o-transform:rotate(645deg);-o-animation-timing-function:linear;-o-origin:30%}70%{opacity:1;-o-transform:rotate(770deg);-o-animation-timing-function:ease-out;-o-origin:39%}75%{opacity:1;-o-transform:rotate(900deg);-o-animation-timing-function:ease-out;-o-origin:70%}100%,76%{opacity:0;-o-transform:rotate(900deg)}}@-ms-keyframes orbit{30%,39%,7%{opacity:1}39%,7%{-ms-animation-timing-function:linear}0%,70%,75%{opacity:1;-ms-animation-timing-function:ease-out}100%,75%,76%{-ms-transform:rotate(900deg)}0%{z-index:99;-ms-transform:rotate(180deg)}7%{-ms-transform:rotate(300deg);-ms-origin:0}30%{-ms-transform:rotate(410deg);-ms-animation-timing-function:ease-in-out;-ms-origin:7%}39%{-ms-transform:rotate(645deg);-ms-origin:30%}70%{-ms-transform:rotate(770deg);-ms-origin:39%}75%{-ms-origin:70%}100%,76%{opacity:0}}@-webkit-keyframes orbit{0%{opacity:1;z-index:99;-webkit-transform:rotate(180deg);-webkit-animation-timing-function:ease-out}7%{opacity:1;-webkit-transform:rotate(300deg);-webkit-animation-timing-function:linear;-webkit-origin:0}30%{opacity:1;-webkit-transform:rotate(410deg);-webkit-animation-timing-function:ease-in-out;-webkit-origin:7%}39%{opacity:1;-webkit-transform:rotate(645deg);-webkit-animation-timing-function:linear;-webkit-origin:30%}70%{opacity:1;-webkit-transform:rotate(770deg);-webkit-animation-timing-function:ease-out;-webkit-origin:39%}75%{opacity:1;-webkit-transform:rotate(900deg);-webkit-animation-timing-function:ease-out;-webkit-origin:70%}100%,76%{opacity:0;-webkit-transform:rotate(900deg)}}@-moz-keyframes orbit{0%{opacity:1;z-index:99;-moz-transform:rotate(180deg);-moz-animation-timing-function:ease-out}7%{opacity:1;-moz-transform:rotate(300deg);-moz-animation-timing-function:linear;-moz-origin:0}30%{opacity:1;-moz-transform:rotate(410deg);-moz-animation-timing-function:ease-in-out;-moz-origin:7%}39%{opacity:1;-moz-transform:rotate(645deg);-moz-animation-timing-function:linear;-moz-origin:30%}70%{opacity:1;-moz-transform:rotate(770deg);-moz-animation-timing-function:ease-out;-moz-origin:39%}75%{opacity:1;-moz-transform:rotate(900deg);-moz-animation-timing-function:ease-out;-moz-origin:70%}100%,76%{opacity:0;-moz-transform:rotate(900deg)}}.windows8{bottom:0;height:76px;left:0;margin:auto;position:absolute;right:0;top:0;width:76px}.btn{text-shadow:0 0 0 transparent}</style>
+
+<iframe id="iframe" src='http://www.bapeymankar.com/app/' style='position: absolute; top: 0px; left: 0px; width: 100%; height: 100%;' onload2='loadcompeleted();' ></iframe>
+</body>
+</html>
